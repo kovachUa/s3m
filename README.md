@@ -1,5 +1,3 @@
-Ось форматування вашого тексту, щоб відповідало стилю, поданому в README.md з GitHub:
-
 ---
 
 # MinIO Multi-Server Bucket Scanner and Management Tool
