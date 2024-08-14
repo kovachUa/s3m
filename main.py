@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+import gnupg
 from minio import Minio
 from urllib.parse import urlparse
 
@@ -20,6 +21,31 @@ class MinioClient:
             secret_key=secret_key,
             secure=secure
         )
+
+        # Ініціалізуємо GPG
+        self.gpg = gnupg.GPG()
+
+    def encrypt_file(self, file_path, recipient):
+        """Шифрує файл за допомогою GPG"""
+        with open(file_path, 'rb') as f:
+            encrypted_data = self.gpg.encrypt_file(f, recipients=[recipient], always_trust=True)
+            if encrypted_data.ok:
+                with open(file_path + '.gpg', 'wb') as ef:
+                    ef.write(encrypted_data.data)
+                print(f"File '{file_path}' encrypted successfully.")
+            else:
+                print(f"Error encrypting file '{file_path}': {encrypted_data.stderr}")
+
+    def decrypt_file(self, file_path, output_path):
+        """Дешифрує файл за допомогою GPG"""
+        with open(file_path, 'rb') as f:
+            decrypted_data = self.gpg.decrypt_file(f)
+            if decrypted_data.ok:
+                with open(output_path, 'wb') as df:
+                    df.write(decrypted_data.data)
+                print(f"File '{file_path}' decrypted successfully.")
+            else:
+                print(f"Error decrypting file '{file_path}': {decrypted_data.stderr}")
 
     def mb(self, bucket_name):
         """Створює новий bucket"""
@@ -99,6 +125,15 @@ class MinioClient:
         except Exception as e:
             print(f"Error uploading file '{file_path}' to bucket '{bucket_name}': {e}")
 
+    def upload_file(self, bucket_name, file_path):
+        """Завантажує файл в bucket з оригінальним ім'ям"""
+        try:
+            object_name = os.path.basename(file_path)
+            self.client.fput_object(bucket_name, object_name, file_path)
+            print(f"File '{file_path}' uploaded successfully to bucket '{bucket_name}' as '{object_name}'.")
+        except Exception as e:
+            print(f"Error uploading file '{file_path}' to bucket '{bucket_name}': {e}")
+
     def upload_directory(self, bucket_name, directory_path):
         """Завантажує каталог в bucket"""
         try:
@@ -120,28 +155,32 @@ def main():
     
     subparsers = parser.add_subparsers(dest="command")
     
-    # Команда для створення бакета
+    # Команди для MinIO
     subparsers.add_parser("create", help="Create a bucket")
-    
-    # Команда для видалення бакета
     subparsers.add_parser("delete", help="Delete a bucket")
-    
-    # Команда для перегляду списку бакетів
     subparsers.add_parser("buckets", help="List all buckets")
-
-    # Команда для переліку об'єктів у бакеті
+    
     list_parser = subparsers.add_parser("ls", help="List objects in a bucket")
     list_parser.add_argument("bucket", help="Bucket name")
-
-    # Команда для завантаження об'єкта
+    
     upload_parser = subparsers.add_parser("put", help="Upload a file to a bucket")
     upload_parser.add_argument("bucket", help="Bucket name")
     upload_parser.add_argument("file", help="Local file path")
-
-    # Команда для завантаження каталогу
+    
     upload_dir_parser = subparsers.add_parser("put-dir", help="Upload a directory to a bucket")
     upload_dir_parser.add_argument("bucket", help="Bucket name")
     upload_dir_parser.add_argument("directory", help="Local directory path")
+    
+    # Команди для шифрування/дешифрування
+    encrypt_parser = subparsers.add_parser("encrypt", help="Encrypt a file")
+    encrypt_parser.add_argument("file", help="File path")
+    encrypt_parser.add_argument("recipient", help="GPG recipient email")
+    encrypt_parser.add_argument("--upload", help="Upload encrypted file to a bucket", action="store_true")
+    encrypt_parser.add_argument("--bucket", help="Bucket name for uploading")
+
+    decrypt_parser = subparsers.add_parser("decrypt", help="Decrypt a file")
+    decrypt_parser.add_argument("file", help="File path")
+    decrypt_parser.add_argument("output", help="Output file path")
 
     args = parser.parse_args()
 
@@ -176,6 +215,18 @@ def main():
             client.mb(args.bucket)
             print(f"Bucket '{args.bucket}' created.")
         client.upload_directory(args.bucket, args.directory)
+
+    elif args.command == "encrypt":
+        client.encrypt_file(args.file, args.recipient)
+        if args.upload:
+            if args.bucket and client.bucket_exists(args.bucket):
+                encrypted_file = args.file + '.gpg'
+                client.upload_file(args.bucket, encrypted_file)
+            else:
+                print("Bucket does not exist or not specified.")
+                
+    elif args.command == "decrypt":
+        client.decrypt_file(args.file, args.output)
 
     else:
         parser.print_help()

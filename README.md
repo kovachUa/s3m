@@ -1,86 +1,115 @@
----
+### 1. Структура Каталогів
 
-# MinIO Multi-Server Bucket Scanner and Management Tool
+```
+s3m/
+│
+├── main.py
+├── key.json
+├── README.md
+└── requirements.txt
+```
 
-MinIO Multi-Server Bucket Scanner and Management Tool is a Python-based solution for interacting with multiple MinIO servers. It includes commands for scanning buckets, searching objects, and downloading objects locally.
+### 2. `README.md`
 
-## Features
+```markdown
+# s3m
 
-- **Bucket Scanning**: Indexes all buckets and objects on a specified MinIO server.
-- **Object Search**: Quickly find objects in the local index.
-- **Object Download**: Download objects from MinIO servers to a local machine.
-- **Multi-Server Support**: Work with multiple MinIO servers, selected via command-line arguments.
+`s3m` — це CLI утиліта для роботи з MinIO, яка підтримує функції шифрування та дешифрування файлів за допомогою GPG.
 
-## Installation and Configuration
+## Встановлення
 
-1. **Clone the repository:**
+### Залежності
 
-   ```bash
-   git clone https://github.com/your-username/minio-multi-server-scanner.git
-   cd minio-multi-server-scanner
-   ```
+1. [MinIO Python SDK](https://pypi.org/project/minio/)
+2. [python-gnupg](https://pypi.org/project/python-gnupg/)
 
-2. **Install dependencies:**
+Встановіть залежності з `requirements.txt`:
 
-   ```bash
-   pip install -r requirements.txt
-   ```
+```bash
+pip install -r requirements.txt
+```
 
-3. **Configure the servers:**
+## Налаштування
 
-   Edit the `key.json` file to include your MinIO server details:
+1. Створіть файл конфігурації `key.json` з наступним вмістом:
 
-   ```json
-   {
-       "servers": [
-           {
-               "name": "server1",
-               "url": "http://192.168.1.1:9000",
-               "accessKey": "accesskey1",
-               "secretKey": "secretkey1",
-               "api": "s3v4"
-           },
-           {
-               "name": "server2",
-               "url": "http://192.168.1.2:9000",
-               "accessKey": "accesskey2",
-               "secretKey": "secretkey2",
-               "api": "s3v4"
-           }
-       ]
-   }
-   ```
+    ```json
+    {
+        "url": "http://localhost:9000",
+        "accessKey": "your-access-key",
+        "secretKey": "your-secret-key",
+        "api": "s3v4"
+    }
+    ```
 
-## Usage
+    Замініть `url`, `accessKey`, `secretKey` на ваші дані.
 
-- **Scan Buckets on a Server:**
+## Використання
 
-   ```bash
-   python3 main.py scan --server server1
-   ```
+### Шифрування файлу
 
-- **Search for an Object on a Specific Server:**
+```bash
+python main.py encrypt <шлях_до_файлу> <email_отримувача> [--upload --bucket <ім'я_бакета>]
+```
 
-   ```bash
-   python3 main.py search --server server1 --bucket my-bucket --object some-object
-   ```
+### Дешифрування файлу
 
-- **Download an Object from a Specific Server:**
+```bash
+python main.py decrypt <шлях_до_зашифрованого_файлу> <шлях_до_виходу>
+```
 
-   ```bash
-   python3 main.py get --server server1 --bucket my-bucket --object some-object --file /path/to/local/file
-   ```
+### Команди MinIO
 
-## Project Structure
+- **Створити bucket**:
 
-- `main.py`: The main script for interacting with MinIO servers via command line.
-- `bucket_scanner.py`: The library that handles core logic for interacting with the MinIO API.
-- `key.json`: Configuration file containing details of MinIO servers.
-- `requirements.txt`: Python dependencies.
+    ```bash
+    python main.py create
+    ```
 
-## Contributing
+- **Видалити bucket**:
 
-Contributions are welcome! Please fork the repository and submit a pull request.
+    ```bash
+    python main.py delete
+    ```
 
----
+- **Переглянути всі buckets**:
+
+    ```bash
+    python main.py buckets
+    ```
+
+- **Перелічити об'єкти у bucket**:
+
+    ```bash
+    python main.py ls <ім'я_бакета>
+    ```
+
+- **Завантажити файл у bucket**:
+
+    ```bash
+    python main.py put <ім'я_бакета> <шлях_до_файлу>
+    ```
+
+- **Завантажити каталог у bucket**:
+
+    ```bash
+    python main.py put-dir <ім'я_бакета> <шлях_до_каталогу>
+    ```
+
+## Ліцензія
+
+MIT License. Дивіться файл [LICENSE](LICENSE) для деталей.
+```
+
+### 3. `requirements.txt`
+
+```text
+minio
+python-gnupg
+```
+
+### 4. Додатково
+
+- **Файл `key.json`**: Це файл конфігурації для зберігання даних для підключення до MinIO. Забезпечте, що він не потрапить в репозиторій, якщо ви публікуєте його в загальнодоступному репозиторії. Ви можете додати його до `.gitignore`, якщо використовуєте git.
+
 
