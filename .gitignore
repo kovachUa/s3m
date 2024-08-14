@@ -1,3 +1,6 @@
 key.json
 __pycache__
 venv
+1.mp4
+path_to_private_key.gpg
+path_to_public_key.gpg
